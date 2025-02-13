@@ -1,5 +1,7 @@
 package vn.edu.tom.bt_android_2;
 
+import static android.content.ContentValues.TAG;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -7,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -20,6 +23,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -32,31 +40,10 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
-    private RecyclerView recyclerView;
-    MessageAdapter adapter;
-    List<MessageModule> messageList; //bien toan cuc
-    AppCompatButton button,button_back,button_next;
-    TextView id,iduser,title,message, txt_dem;
-    Gson gson;
-    MessageModule messageModule = new MessageModule();
+
+    TextView id,iduser,title,message;
     private static final String CHANNEL_ID = "my_channel_id";
-    String json;
-    int dem=0;
 
-    void HienThi1PT(){
-        if(messageList==null) return;
-        else {
-            MessageModule messageModule = messageList.get(dem); // Lấy bài viết đầu tiên
-            id.setText(String.valueOf(messageModule.getId()));
-            iduser.setText(String.valueOf(messageModule.getUserId()));
-            title.setText(messageModule.getTitle());
-            message.setText(messageModule.getBody());
-            txt_dem.setText(""+(dem+1)+"/"+messageList.size());
-            showNotification(messageModule.getTitle(),messageModule.getBody());
-        }
-
-    }
-    Context myContext;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,77 +56,45 @@ public class MainActivity extends AppCompatActivity {
         });
 
         anhXa();
-        gson = new Gson();
-        button_back.setOnClickListener(new View.OnClickListener() {
+
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("message");
+
+
+        myRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onClick(View view) {
-                lui1(view);
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                MessageModule messageModule = dataSnapshot.getValue(MessageModule.class);
+                if (messageModule != null) {
+                    hienthi(messageModule);
+                    showNotification(messageModule.getTitle(), messageModule.getBody());
+                    Log.d(TAG, "Dữ liệu nhận được: " + messageModule.toString());
+                } else {
+                    Log.e(TAG, "Dữ liệu null hoặc không đúng định dạng!");
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                Log.w(TAG, "Failed to read value.", error.toException());
             }
         });
-        button_next.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                tien1(view);
-            }
-        });
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
 
-                messageList = new ArrayList<>();
-
-                // Tạo Retrofit instance
-                Retrofit retrofit = new Retrofit.Builder()
-                        .baseUrl("https://jsonplaceholder.typicode.com/posts/") // URL chính xác của API
-                        .addConverterFactory(GsonConverterFactory.create()) // Dùng Gson để parse JSON
-                        .build();
-
-                Api apiService = retrofit.create(Api.class);
-                Call<List<MessageModule>> call = apiService.getJsonData(); // Sửa Call<List<MessageModule>>
-
-                call.enqueue(new Callback<List<MessageModule>>() {
-                    @Override
-                    public void onResponse(Call<List<MessageModule>> call, Response<List<MessageModule>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            messageList = response.body();
-                            dem=0;
-                            if (!messageList.isEmpty()) {
-                                HienThi1PT();
-                                MessageAdapter adapter;
-                                adapter = new MessageAdapter(getApplicationContext(), messageList);
-                                recyclerView.setAdapter(adapter);
-                                MessageModule messageModule = messageList.get(dem); // Lấy bài viết đầu tiên
-                                id.setText(String.valueOf(messageModule.getId()));
-                                iduser.setText(String.valueOf(messageModule.getUserId()));
-                                title.setText(messageModule.getTitle());
-                                message.setText(messageModule.getBody());
-                                dem++;
-                                showNotification(messageModule.getTitle(),messageModule.getBody());
-                            }
-                        } else {
-                            System.err.println("Response is empty or unsuccessful");
-                        }
-                    }
-                    @Override
-                    public void onFailure(Call<List<MessageModule>> call, Throwable t) {
-                        System.err.println("Error: " + t.getMessage());
-                    }
-                });
-            }
-        });
     }
 
+    private void hienthi(MessageModule messageModule) {
+        id.setText(String.valueOf(messageModule.getId()));
+        iduser.setText(String.valueOf(messageModule.getUserId()));
+        title.setText(String.valueOf(messageModule.getTitle()));
+        message.setText(String.valueOf(messageModule.getBody()));
+    }
+
+
     private void anhXa() {
-        button = findViewById(R.id.button);
         id = findViewById(R.id.id1);
         title = findViewById(R.id.title1);
         message = findViewById(R.id.message1);
         iduser = findViewById(R.id.iduser1);
-        txt_dem = findViewById(R.id.txt_dem);
-        recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        button_back = findViewById(R.id.button_back);
-        button_next = findViewById(R.id.button_next);
     }
     private void showNotification(String title, String content) {
         // Tạo NotificationManager
@@ -177,24 +132,5 @@ public class MainActivity extends AppCompatActivity {
 
         // Hiển thị thông báo
         notificationManager.notify(1, builder.build());
-    }
-
-    public void lui1(View view) {
-        if(messageList==null)return;
-        if(dem>0)dem--;
-        if(dem>=0)
-        {
-            HienThi1PT();
-        }
-
-    }
-
-    public void tien1(View view) {
-        if(messageList==null)return;
-        if(dem < messageList.size()-1)dem++;
-        if(dem < messageList.size())
-        {
-            HienThi1PT();
-        }
     }
 }

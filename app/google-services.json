@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "868860850344",
+    "firebase_url": "https://appandroid-72bfd-default-rtdb.firebaseio.com",
+    "project_id": "appandroid-72bfd",
+    "storage_bucket": "appandroid-72bfd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:868860850344:android:209b09d982ff9c2e58d29d",
+        "android_client_info": {
+          "package_name": "vn.edu.tom.bt_android_2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDwulV89dYGpTPBuVuZSq6Ia9UnSWCt8Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
